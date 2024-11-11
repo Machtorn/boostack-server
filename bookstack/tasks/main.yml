@@ -1,0 +1,62 @@
+---
+# tasks file for bookstack
+#
+- name: install git
+  ansible.builtin.apt:
+    name: git
+    state: latest
+
+- name: install composer
+  ansible.builtin.apt:
+    name: composer
+    state: latest
+
+- name: change file ownership and group of bookstack directory
+  ansible.builtin.file:
+    path: /opt/web/bookstack/
+    state: directory
+    recurse: yes
+    owner: root
+    group: root
+
+- name: clone bookstack
+  ansible.builtin.git:
+    repo: 'https://github.com/BookStackApp/BookStack.git'
+    dest: /opt/web/bookstack/
+    single_branch: yes
+    version: release
+
+- name: Add Bookstack .env file
+  ansible.builtin.template:
+    src: templates/.env.j2
+    dest: /opt/web/bookstack/.env
+    owner: wiki
+    group: wiki
+    mode: u=rw,g=r,o=r
+
+- name: bookstack installation with composer
+  ansible.builtin.expect:
+    chdir: /opt/web/bookstack
+    command: composer install --no-dev
+    responses:
+      (.*)Continue as root/super user(.*): 'yes'
+
+- name: bookstack key generation
+  ansible.builtin.shell:
+    cmd: php artisan key:generate --no-interaction --force
+    chdir: /opt/web/bookstack
+
+- name: bookstack database configuration
+  when: no_restore|bool
+  ansible.builtin.shell:
+    cmd: php artisan migrate --no-interaction --force
+    chdir: /opt/web/bookstack
+
+
+- name: change file ownership and group of bookstack directory
+  ansible.builtin.file:
+    path: /opt/web/bookstack/
+    state: directory
+    recurse: yes
+    owner: '{{ lampuser }}'
+    group: '{{ lampgroup }}'

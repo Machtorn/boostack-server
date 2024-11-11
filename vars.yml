@@ -1,0 +1,48 @@
+---
+# Base config
+hostname: # hostname of your server
+server_ipv4_adress: # server ip
+localdomain: # your localdomain
+server_admin: Machtorn
+admin_ip: # your box ip
+ssh_port: # define new ssh port
+
+# lamp group and user
+lampgroup: 
+lampuser: 
+
+# Apache config
+subdomain: 
+mailadministrator: 
+default_vhost: 000-default.conf
+bookstack_vhost: bookstack-http.conf
+document_root: /opt/web/bookstack/public/
+allowed_ip: # authorise ip for users
+
+# Mariadb credentials
+mariadb_root:
+database_name:
+database_user:
+database_user_password:
+
+# Mail relayhost
+smtp_hostname: in-v3.mailjet.com
+smtp_port: 587
+api_key:
+secret_key:
+
+# Bookstack mail
+sender_name: "Wiki"
+sender_mail:
+send_method: sendmail
+
+# Backup
+script_path: /opt/scripts/backup/
+temp_name:
+backup_path: /opt/web/
+directory_to_backup: /bookstack/
+archive_path: /opt/backup/
+time_backup: +14
+
+# Bookstack restore
+no_restore: false

@@ -1,0 +1,22 @@
+---
+# handlers file for apache_phpfpm
+
+- name: enable apache2
+  ansible.builtin.systemd:
+    name: apache2.service
+    enabled: true
+
+- name: enable php8.2-fpm
+  ansible.builtin.systemd:
+    name: php8.2-fpm.service
+    enabled: true
+
+- name: restart apache2
+  ansible.builtin.systemd:
+    name: apache2.service
+    state: restarted
+
+- name: restart php8.2-fpm
+  ansible.builtin.systemd:
+    name: php8.2-fpm.service
+    state: restarted

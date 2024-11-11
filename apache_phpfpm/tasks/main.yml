@@ -1,0 +1,127 @@
+---
+# tasks file for apache_phpfpm
+
+- name: Install apache
+  ansible.builtin.apt:
+    name: apache2
+    state: latest
+
+- name: Modules activation and deactivation
+  community.general.apache2_module:
+    name: "{{ item.module }}"
+    state: "{{ item.state }}"
+  loop:
+  - module: headers
+    state: present
+  - module: rewrite
+    state: present
+  - module: deflate
+    state: present
+  - module: proxy_fcgi
+    state: present
+  - module: ssl
+    state: present
+  - module: proxy_http
+    state: present
+  - module: http2
+    state: present
+  - module: setenvif
+    state: present
+  notify:
+    - enable apache2 
+    - restart apache2
+
+- name: Install php
+  ansible.builtin.apt:
+    pkg:
+    - php8.2
+    - php8.2-fpm
+    - php8.2-mysql
+    - php8.2-gd
+    - php8.2-xml
+    - php8.2-curl
+    state: latest
+
+- name: wiki group creation
+  ansible.builtin.group:
+    name: "{{ lampgroup }}"
+    state: present
+    system: true
+
+- name: Create wiki user
+  ansible.builtin.user:
+    name: "{{ lampuser }}"
+    group: "{{ lampgroup }}"
+    state: present
+    system: true
+    shell: /sbin/nologin
+    create_home: false
+    password: '!'
+
+- name: Change user group for apache
+  ansible.builtin.replace:
+    path: /etc/apache2/envvars
+    regexp: 'www-data'
+    replace: '{{ lampuser }}'
+  notify:
+    - restart apache2
+
+- name: Hide server signature 
+  ansible.builtin.replace:
+    path: /etc/apache2/conf-available/security.conf
+    regexp: "{{ item.From }}"
+    replace: '{{ item.To }}'
+  with_items:
+    - { From: '^ServerTokens OS', To: 'ServerTokens Prod'}
+    - { From: '^ServerSignature On', To: 'ServerSignature Off'}
+  notify:
+    - restart apache2
+
+- name: Listen path for php-fpm
+  ansible.builtin.replace:
+    path: /etc/php/8.2/fpm/pool.d/www.conf
+    regexp: '^listen = /run/php/php8.2-fpm.sock'
+    replace: 'listen = 127.0.0.1:9000'
+  notify:
+    - enable php8.2-fpm
+    - restart php8.2-fpm
+
+- name: Change user group for phpfpm
+  ansible.builtin.replace:
+    path: /etc/php/8.2/fpm/pool.d/www.conf
+    regexp: 'www-data'
+    replace: '{{ lampuser }}'
+  notify:
+    - restart php8.2-fpm
+
+- name: Create path for bookstack
+  ansible.builtin.file:
+    path: /opt/web/bookstack/
+    state: directory
+
+- name: Add Bookstack Vhost
+  ansible.builtin.template:
+    src: templates/bookstack-http.conf.j2
+    dest: /etc/apache2/sites-available/bookstack-http.conf
+    owner: root
+    group: root
+    mode: u=rw,g=r,o=r
+  notify:
+  - restart apache2
+
+- name: 000-default vhost deactivation
+  ansible.builtin.shell: 
+    cmd: a2dissite {{ default_vhost|quote }}
+    chdir: /etc/apache2/sites-available/
+  notify:
+  - restart apache2
+
+- name: Bookstack Vhost activation
+  ansible.builtin.shell: 
+    cmd: a2ensite {{ bookstack_vhost|quote }}
+    chdir: /etc/apache2/sites-available/
+  notify:
+  - restart apache2
+
+- name: Flush handlers
+  meta: flush_handlers

@@ -1,0 +1,16 @@
+---
+- hosts: bookstack-webserver
+  become: yes
+  vars_files:
+    - vars.yml
+  roles:
+    - general
+    - apache_phpfpm
+    - database
+    - mail
+    - security
+    - bookstack
+    - ssl
+    - backup
+    #- update_bookstack    
+    

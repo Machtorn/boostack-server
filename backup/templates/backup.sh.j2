@@ -1,0 +1,39 @@
+#!/bin/bash
+
+date=`date +%H%M%d%m%y`
+
+echo "This is the backup start"
+
+cd {{ backup_path }}
+
+tar -cPf {{ temp_name }}.tar .{{ directory_to_backup }}
+
+echo "Files saved at $(date +%d-%m-%y) a $(date +%H:%M:%S) !"
+
+sleep 1m
+
+mysqldump -u {{ database_user }} -p'{{ database_user_password }}' {{ database_name }} > {{ backup_path }}{{ temp_name }}.sql
+
+echo "Database backup done at $(date +%d-%m-%y) a $(date +%H:%M:%S) !"
+
+sleep 1m
+
+tar -czPf $date.tar.gz wiki.*
+
+sleep 1m
+
+cp {{ backup_path }}*$(date +%d%m%y)* {{ archive_path }}
+
+echo "Copy in backup directory done at $(date +%d-%m-%y) a $(date +%H:%M:%S) !"
+
+rm {{ temp_name }}.*
+
+rm *.tar.gz
+
+echo "ww directory cleaned up"
+
+find {{ archive_path }} -mtime +14 -delete
+
+echo "Archive directory cleaned up"
+
+echo "See you"

@@ -1,0 +1,7 @@
+---
+# handlers file for mail
+#
+- name: restart postfix
+  ansible.builtin.systemd:
+    name: postfix.service
+    state: restarted

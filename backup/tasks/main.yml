@@ -1,0 +1,35 @@
+---
+# tasks file for backup
+#
+- name: script directory creation
+  ansible.builtin.file:
+    path: '{{ script_path }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Archive directory creation
+  ansible.builtin.file:
+    path: '{{ archive_path }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: add backup script
+  ansible.builtin.template:
+    src: templates/backup.sh.j2
+    dest: /opt/scripts/backup/backup.sh
+    owner: root
+    group: root
+    mode: u=rx,g=rx,o=rx
+
+- name: cron task create for backup
+  ansible.builtin.cron:
+    name: bookstack backup
+    day: "*"
+    hour: "3"
+    minute: "0"
+    user: root
+    job: "{{ script_path }}backup.sh"

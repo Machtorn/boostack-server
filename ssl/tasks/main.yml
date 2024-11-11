@@ -1,0 +1,41 @@
+---
+# tasks file for ssl
+#
+- name: Install certbot
+  ansible.builtin.apt:
+    pkg:
+      - certbot
+      - python3-certbot-apache
+    state: latest
+
+- name: Create certificate for bookstack
+  ansible.builtin.shell:
+    cmd: certbot certonly --email {{mailadministrator}} --agree-tos --non-interactive --webroot --webroot-path {{ document_root }} -d {{ subdomain|quote }}.{{ localdomain|quote }}
+  register: result
+  ignore_errors: true
+
+- name: Activate SSL for Apache2
+  ansible.builtin.lineinfile:
+    path: /etc/apache2/sites-available/bookstack-http.conf
+    regex: '{{item.From}}'
+    line: '{{item.To}}'
+  with_items:
+   - { From: '^#SSLEngine on', To: 'SSLEngine on'}
+   - { From: '^#SSLCertificateFile', To: 'SSLCertificateFile /etc/letsencrypt/live/{{ subdomain }}.{{ localdomain }}/cert.pem'}
+   - { From: '^#SSLCertificateKeyFile', To: 'SSLCertificateKeyFile /etc/letsencrypt/live/{{ subdomain }}.{{ localdomain }}/privkey.pem'}
+   - { From: '^#SSLCACertificateFile', To: 'SSLCACertificateFile /etc/letsencrypt/live/{{ subdomain }}.{{ localdomain }}/chain.pem'}
+   - { From: '^#SSLProtocol', To: 'SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1'}
+   - { From: '^#SSLHonorCipherOrder on', To: 'SSLHonorCipherOrder on'}
+  when: result is succeeded
+  notify:
+   - restart apache2
+
+- name: Restart apache2 after SSL renew
+  ansible.builtin.blockinfile:
+    path: /etc/letsencrypt/cli.ini
+    block: |
+      post-hook = systemctl restart apache2
+    marker: '# {mark} Added by {{ server_admin }}'
+
+- name: Flush handlers
+  meta: flush_handlers

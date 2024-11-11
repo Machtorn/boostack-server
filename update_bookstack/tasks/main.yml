@@ -1,0 +1,43 @@
+---
+# tasks file for update_bookstack
+
+- name: change file ownership and group of bookstack directory
+  ansible.builtin.file:
+    path: /opt/web/bookstack/
+    state: directory
+    recurse: yes
+    owner: root
+    group: root
+
+- name: Update bookstack with git pull
+  ansible.builtin.shell: 
+      cmd: git pull origin release
+      chdir: /opt/web/bookstack
+
+- name: bookstack installation with composer
+  ansible.builtin.expect:
+    chdir: /opt/web/bookstack
+    command: composer install --no-dev
+    responses:
+      (.*)Continue as root/super user(.*): 'yes'
+
+- name: Update database
+  ansible.builtin.shell:
+    cmd: php artisan migrate --no-interaction --force
+    chdir: /opt/web/bookstack
+
+- name: Clear cache Bookstack
+  ansible.builtin.shell: |
+    php artisan cache:clear
+    php artisan config:clear
+    php artisan view:clear
+  args:
+    chdir: /opt/web/bookstack/
+
+- name: change file ownership and group of bookstack diractory
+  ansible.builtin.file:
+    path: /opt/web/bookstack/
+    state: directory
+    recurse: yes
+    owner: '{{ lampuser }}'
+    group: '{{ lampgroup }}'
